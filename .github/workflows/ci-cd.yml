@@ -46,3 +46,24 @@ jobs:
         IMAGE_TAG=${{ github.sha }}
         docker push $IMAGE_NAME:latest
         docker push $IMAGE_NAME:$IMAGE_TAG
+  deploy:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure Kubernetes credentials
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+
+    - name: Update Kubernetes deployment with new Docker image
+      run: |
+        kubectl set image deployment/my-flask-app my-flask-app=${{ env.IMAGE_NAME }}:${{ github.sha }}
